@@ -5,34 +5,44 @@ const scrape = async () => {
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
 
-    const url = "https://books.toscrape.com";
+    const allBooks = [];
 
-    await page.goto(url);
+    let currentPage = 1;
+    const maxPages = 15;
 
-    const books = await page.evaluate(() =>{
-        const bookElements = document.querySelectorAll('.product_pod');
-        return Array.from(bookElements).map((book) => {
-            const title = book.querySelector('h3 a').title;
-            const price = book.querySelector('.price_color').innerText;
-            const stock = book.querySelector('.instock.availability') 
-            ? 'In Stock' : 'Out of Stock';
-            const rating = book.querySelector('p.star-rating').className.split(' ')[1];
-            const link = book.querySelector('h3 a').href;
-            return {
-                title,
-                price,
-                stock,
-                rating,
-                link
-            }
+    while (currentPage <= maxPages) {
+        const url = `https://books.toscrape.com/catalogue/page-${currentPage}.html`;
+    
+        await page.goto(url);
+    
+        const books = await page.evaluate(() =>{
+            const bookElements = document.querySelectorAll('.product_pod');
+            return Array.from(bookElements).map((book) => {
+                const title = book.querySelector('h3 a').title;
+                const price = book.querySelector('.price_color').innerText;
+                const stock = book.querySelector('.instock.availability') 
+                ? 'In Stock' : 'Out of Stock';
+                const rating = book.querySelector('p.star-rating').className.split(' ')[1];
+                const link = book.querySelector('h3 a').href;
+                return {
+                    title,
+                    price,
+                    stock,
+                    rating,
+                    link
+                }
+            })
         })
-    })
+        allBooks.push(...books);
+        console.log(`Scraped page ${currentPage} :`, books); 
+        currentPage++;
+    }
 
-    fs.writeFileSync('books.json', JSON.stringify(books, null, 2));
+
+    fs.writeFileSync('books.json', JSON.stringify(allBooks, null, 2));
 
     console.log('Data saved to books.json');
 
     await browser.close();
 }
-
 scrape();
